@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lamp 3D/AR Viewer</title> <!-- Updated title -->
+    <title>3D/AR Model Viewer</title> <!-- More general title -->
 
     <!-- Model Viewer Script -->
     <script type="module"
@@ -15,25 +15,36 @@
             font-family: Arial, sans-serif;
             text-align: center;
             padding: 20px;
-            margin: 0; /* Added to prevent default body margin */
+            margin: 0;
         }
 
-        h1, p {
-             margin-bottom: 1rem; /* Add some spacing */
+        h1, h2 {
+             margin-bottom: 1rem;
+        }
+
+        .model-container {
+            margin-bottom: 40px; /* Add space between models */
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-width: 850px; /* Limit container width */
+            margin-left: auto;  /* Center container */
+            margin-right: auto; /* Center container */
         }
 
         model-viewer {
-            width: 90%;
-            max-width: 800px;
-            height: 600px;
-            margin: 20px auto;
+            width: 100%; /* Take full width of container */
+            max-width: 800px; /* Still limit viewer size */
+            height: 500px; /* Slightly smaller default height */
+            margin: 10px auto; /* Center viewer within container */
             border-radius: 8px;
             background-color: #e9ecef;
-            display: block; /* Ensure block layout */
-            position: relative; /* Needed for default AR button positioning */
+            display: block;
+            position: relative;
         }
 
-        /* Optional: Style the default AR button if needed */
+        /* Optional: Style the default AR button */
         model-viewer::part(ar-button) {
             background-image: url(https://modelviewer.dev/shared-assets/icons/ic_view_in_ar_new_googblue_48dp.png);
             background-repeat: no-repeat;
@@ -49,20 +60,20 @@
             height: 48px;
             cursor: pointer;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            /* display: block; */ /* Usually not needed, model-viewer handles visibility */
         }
 
-
-        /* Optional: Progress bar styling */
+        /* Progress bar styling */
         .progress-bar {
-            display: block; /* Make it visible */
+            display: block;
             width: 100%;
             height: 4px;
             background-color: #e9ecef;
-            overflow: hidden; /* Ensure update-bar stays within bounds */
+            overflow: hidden;
             position: absolute;
             top: 0;
             left: 0;
+            border-top-left-radius: 8px; /* Match viewer radius */
+            border-top-right-radius: 8px;/* Match viewer radius */
         }
         .update-bar {
             background-color: #007bff;
@@ -71,48 +82,72 @@
             transition: width 0.3s ease;
         }
         model-viewer.loaded .progress-bar {
-          visibility: hidden; /* Hide when loaded */
+          visibility: hidden;
         }
-
 
         @media (max-width: 767px) {
             model-viewer {
                 height: 400px;
             }
+            .model-container {
+                padding: 10px;
+            }
         }
     </style>
 </head>
 <body>
-    <p>Interactive 3D Model with AR Support</p> <!-- Updated description -->
+    <h1>Interactive 3D Models with AR Support</h1>
 
-    <model-viewer
-        alt="Lamp With Shade"
-        src="{{ url_for('static', filename='model/Lamp With Shade.glb') }}"
+    {# Loop through the models passed from the Flask app #}
+    {% for model in models %}
+    <div class="model-container">
+        <h2>{{ model.name }}</h2> {# Display the model name #}
+        <model-viewer
+            alt="{{ model.name }}"
+            src="{{ url_for('static', filename='model/' + model.filename) }}"
+            {# Add AR attributes for better compatibility #}
+            ar
+            ar-modes="webxr scene-viewer quick-look"
+            {# Optional: Add ios-src if you have USDZ files for iOS #}
+            {# ios-src="{{ url_for('static', filename='model/' + model.filename.replace('.glb', '.usdz')) }}" #}
+            camera-controls
+            auto-rotate
+            shadow-intensity="1"
+            touch-action="pan-y">
 
-        {# --- AR Attributes Added Below --- #}
-        ios-src="{{ url_for('static', filename='model/Lamp With Shade.usdz') }}" {# **REQUIRED** for AR on iOS #}
-        ar                                                                      {# Enable AR features #}
-        ar-modes="webxr scene-viewer quick-look"                                {# Specify AR modes to support #}
-        ar-scale="auto"                                                         {# Optional: Let user scale or fix scale #}
-        {# --- End of Added AR Attributes --- #}
+            {# Progress bar slot (remains the same for each) #}
+            <div class="progress-bar" slot="progress-bar">
+                <div class="update-bar"></div>
+            </div>
 
-        camera-controls
-        auto-rotate
-        shadow-intensity="1"
-        touch-action="pan-y">
+             {# Optional: Explicit AR button if needed, though default usually works #}
+             {# <button slot="ar-button" style="background-color: white; border-radius: 4px; border: none; position: absolute; bottom: 16px; right: 16px; ">
+                👋 Activate AR
+             </button> #}
+        </model-viewer>
+    </div>
+    {% endfor %}
 
-        {# Optional: Progress bar slot #}
-        <div class="progress-bar" slot="progress-bar">
-            <div class="update-bar"></div>
-        </div>
-
-        {# Optional: Custom AR button if you don't like the default #}
-        {# <button slot="ar-button" style="background-color: white; border-radius: 4px; border: none; position: absolute; top: 16px; right: 16px; ">
-               🚀 View in AR
-           </button> #}
-
-    </model-viewer>
-
+    {# Optional: Add JS for progress bar updates if needed #}
+    <script>
+      // This script ensures the progress bar visually updates.
+      // ModelViewer itself handles hiding it via the .loaded class in CSS.
+      document.querySelectorAll('model-viewer').forEach(viewer => {
+        const progressBar = viewer.querySelector('.progress-bar');
+        const updateBar = viewer.querySelector('.update-bar');
+        viewer.addEventListener('progress', (event) => {
+          const progress = event.detail.totalProgress * 100;
+          updateBar.style.width = `${progress}%`;
+        });
+        // Ensure bar is hidden if model loads instantly from cache
+        viewer.addEventListener('load', () => {
+            // Ensure the loaded class is added for CSS rules
+            if (!viewer.classList.contains('loaded')) {
+                 viewer.classList.add('loaded');
+            }
+        });
+      });
+    </script>
 
 </body>
 </html>
