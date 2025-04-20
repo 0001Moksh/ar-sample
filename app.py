@@ -8,11 +8,13 @@ app = Flask(__name__)
 def index():
     # List of models with their display names and filenames
     models_data = [
+        {'name': 'mouse', 'filename': 'mouse2.glb'},
+        {'name': 'Ganesha_Candle_Holder', 'filename': 'Ganesha_Candle_Holder.glb'},
+        {'name': 'Fountain', 'filename': 'Fountain.glb'},
+        {'name': 'Blue_White_Radiance', 'filename': 'Blue_White_Radiance.glb'},
         {'name': 'Lamp With Shade', 'filename': 'Lamp With Shade.glb'},
         {'name': 'Sofa', 'filename': 'Sofa.glb'},
         {'name': 'Office Chair', 'filename': 'Office Chair.glb'},
-        {'name': 'mouse', 'filename': 'mouse2.glb'},
-        {'name': 'Ganesha_Candle_Holder', 'filename': 'Ganesha_Candle_Holder.glb'},
         # Add more models here if needed
         # {'name': 'Another Item', 'filename': 'another_item.glb'},
     ]
