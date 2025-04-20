@@ -3,150 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D/AR Model Viewer</title> <!-- More general title -->
-
-    <!-- Model Viewer Script -->
-    <script type="module"
-        src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+    <title>AR Model Showcase</title>
+    <!-- Simple CSS Reset -->
+     <!-- Already in your code, just make sure it is styled -->
+<style>
+    .progress-bar {
+        width: 100%;
+        height: 4px;
+        background-color: #ccc;
+        position: relative;
+        margin-top: 10px;
+    }
+    .update-bar {
+        height: 100%;
+        width: 0%;
+        background-color: #3498db;
+        transition: width 0.3s ease;
+    }
+</style>
 
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background-color: #f8f9fa;
-            font-family: Arial, sans-serif;
-            text-align: center;
+            font-family: sans-serif;
+            line-height: 1.6;
+            background-color: #f4f4f4;
             padding: 20px;
-            margin: 0;
+            color: #333;
         }
-
-        h1, h2 {
-             margin-bottom: 1rem;
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            overflow: auto;
         }
-
-        .model-container {
-            margin-bottom: 40px; /* Add space between models */
-            padding: 15px;
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+        .model-grid {
+            display: grid;
+            /* Responsive grid: Adjust minmax(250px, ...) based on desired card size */
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px; /* Spacing between cards */
+        }
+        .model-card {
             background-color: #fff;
             border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            max-width: 850px; /* Limit container width */
-            margin-left: auto;  /* Center container */
-            margin-right: auto; /* Center container */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden; /* Ensures image corners are rounded if image fills card */
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
-
-        model-viewer {
-            width: 100%; /* Take full width of container */
-            max-width: 800px; /* Still limit viewer size */
-            height: 500px; /* Slightly smaller default height */
-            margin: 10px auto; /* Center viewer within container */
-            border-radius: 8px;
-            background-color: #e9ecef;
-            display: block;
-            position: relative;
+        .model-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
         }
-
-        /* Optional: Style the default AR button */
-        model-viewer::part(ar-button) {
-            background-image: url(https://modelviewer.dev/shared-assets/icons/ic_view_in_ar_new_googblue_48dp.png);
-            background-repeat: no-repeat;
-            background-size: contain;
-            background-position: center;
-            background-color: white;
-            position: absolute;
-            right: 16px;
-            bottom: 16px;
-            border-radius: 50%;
-            border: none;
-            width: 48px;
-            height: 48px;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        /* Progress bar styling */
-        .progress-bar {
-            display: block;
+        .model-card img {
             width: 100%;
-            height: 4px;
-            background-color: #e9ecef;
-            overflow: hidden;
-            position: absolute;
-            top: 0;
-            left: 0;
-            border-top-left-radius: 8px; /* Match viewer radius */
-            border-top-right-radius: 8px;/* Match viewer radius */
+            height: 200px; /* Fixed height for consistency */
+            object-fit: cover; /* Cover ensures image fills space, might crop */
+            /* object-fit: contain; */ /* Use contain if you don't want cropping */
+            display: block;
+            background-color: #eee; /* Placeholder bg while image loads */
         }
-        .update-bar {
-            background-color: #007bff;
-            width: 0%;
-            height: 100%;
-            transition: width 0.3s ease;
+        .model-card-content {
+            padding: 15px;
+            flex-grow: 1; /* Allows content to fill space if card heights vary */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Pushes button to bottom */
         }
-        model-viewer.loaded .progress-bar {
-          visibility: hidden;
+        .model-card h3 {
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            color: #34495e;
+        }
+        .view-button {
+            display: inline-block;
+            background-color: #3498db;
+            color: #fff;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-top: 10px; /* Space above button */
+            align-self: flex-start; /* Align button to the start (left) */
+        }
+        .view-button:hover {
+            background-color: #2980b9;
         }
 
-        @media (max-width: 767px) {
-            model-viewer {
-                height: 400px;
-            }
-            .model-container {
-                padding: 10px;
-            }
+        /* --- Modal Styles --- */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+            padding-top: 60px; /* Location of the box */
         }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto; /* 5% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Could be more or less, depending on screen size */
+            max-width: 700px;
+            position: relative;
+            border-radius: 8px;
+        }
+        .close-button {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+        }
+        #modal-model-viewer {
+            width: 100%;
+            height: 500px; /* Adjust height as needed */
+            border: none;
+            display: block; /* Ensure it takes up block space */
+        }
+        #modal-title {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+            color: #333;
+        }
+
     </style>
+
+    <!-- Loads <model-viewer> for modern browsers: -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 </head>
 <body>
-    <h1>Interactive 3D Models with AR Support</h1>
 
-    {# Loop through the models passed from the Flask app #}
-    {% for model in models %}
-    <div class="model-container">
-        <h2>{{ model.name }}</h2> {# Display the model name #}
-        <model-viewer
-            alt="{{ model.name }}"
-            src="{{ url_for('static', filename='model/' + model.filename) }}"
-            {# Add AR attributes for better compatibility #}
-            ar
-            ar-modes="webxr scene-viewer quick-look"
-            {# Optional: Add ios-src if you have USDZ files for iOS #}
-            {# ios-src="{{ url_for('static', filename='model/' + model.filename.replace('.glb', '.usdz')) }}" #}
-            camera-controls
-            auto-rotate
-            shadow-intensity="1"
-            touch-action="pan-y">
+    <div class="container">
+        <h1>3D Model Gallery</h1>
 
-            {# Progress bar slot (remains the same for each) #}
-            <div class="progress-bar" slot="progress-bar">
-                <div class="update-bar"></div>
+        <div class="model-grid">
+            {% for model in models %}
+            <div class="model-card">
+                <img src="{{ model.image_url }}" alt="{{ model.alt_text }}" loading="lazy">
+                <div class="model-card-content">
+                    <h3>{{ model.name }}</h3>
+                    <button class="view-button"
+                            data-model-src="{{ model.model_url }}"
+                            data-model-name="{{ model.name }}">
+                        View 3D
+                    </button>
+                </div>
             </div>
-
-             {# Optional: Explicit AR button if needed, though default usually works #}
-             {# <button slot="ar-button" style="background-color: white; border-radius: 4px; border: none; position: absolute; bottom: 16px; right: 16px; ">
-                👋 Activate AR
-             </button> #}
-        </model-viewer>
+            {% else %}
+            <p>No models found. Make sure models and images are in the correct static subfolders.</p>
+            {% endfor %}
+        </div>
     </div>
-    {% endfor %}
 
-    {# Optional: Add JS for progress bar updates if needed #}
+    <!-- The Modal -->
+    <div id="modelModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="modal-title">Model Viewer</h2>
+            <model-viewer id="modal-model-viewer"
+                          src=""
+                          alt="Interactive 3D model"
+                          ar
+                          ar-modes="webxr scene-viewer quick-look"
+                          camera-controls
+                          environment-image="neutral"
+                          auto-rotate
+                          shadow-intensity="1">
+                <!-- Add loading indicator -->
+                 <div class="progress-bar hide" slot="progress-bar">
+                    <div class="update-bar"></div>
+                </div>
+            </model-viewer>
+        </div>
+    </div>
+
     <script>
-      // This script ensures the progress bar visually updates.
-      // ModelViewer itself handles hiding it via the .loaded class in CSS.
-      document.querySelectorAll('model-viewer').forEach(viewer => {
-        const progressBar = viewer.querySelector('.progress-bar');
-        const updateBar = viewer.querySelector('.update-bar');
-        viewer.addEventListener('progress', (event) => {
-          const progress = event.detail.totalProgress * 100;
-          updateBar.style.width = `${progress}%`;
+        // Get modal elements
+        const modal = document.getElementById("modelModal");
+        const modalViewer = document.getElementById("modal-model-viewer");
+        const modalTitle = document.getElementById("modal-title");
+        const closeButton = document.querySelector(".close-button");
+
+        // Get all view buttons
+        const viewButtons = document.querySelectorAll(".view-button");
+
+        // Function to open the modal
+        function openModal(modelSrc, modelName) {
+            modalTitle.textContent = modelName; // Set the title
+            modalViewer.src = modelSrc; // Set the model source
+            modal.style.display = "block"; // Show the modal
+            // Optional: Reset camera orbit, etc. if needed when opening
+            // modalViewer.cameraOrbit = '0deg 75deg 1.5m';
+        }
+
+        // Function to close the modal
+        function closeModal() {
+            modal.style.display = "none";
+            modalViewer.src = ""; // Clear the src to stop rendering/loading
+        }
+
+        // Add click event listeners to all view buttons
+        viewButtons.forEach(button => {
+            button.addEventListener("click", () => {
+                const modelSrc = button.getAttribute("data-model-src");
+                const modelName = button.getAttribute("data-model-name");
+                openModal(modelSrc, modelName);
+            });
         });
-        // Ensure bar is hidden if model loads instantly from cache
-        viewer.addEventListener('load', () => {
-            // Ensure the loaded class is added for CSS rules
-            if (!viewer.classList.contains('loaded')) {
-                 viewer.classList.add('loaded');
+
+        // Add click event listener to the close button
+        closeButton.addEventListener("click", closeModal);
+
+        // Close the modal if the user clicks anywhere outside of the modal content
+        window.addEventListener("click", (event) => {
+            if (event.target == modal) {
+                closeModal();
             }
         });
-      });
+
+        // Close the modal if the user presses the Escape key
+        window.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && modal.style.display === "block") {
+                closeModal();
+            }
+        });
+
     </script>
 
 </body>
